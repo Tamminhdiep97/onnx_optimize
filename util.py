@@ -68,26 +68,16 @@ def optimize_graph():
     return sess_options
 
 
-def quantize_onnx(model, config):
-    model.qconfig = torch.quantization.get_default_qconfig('fbgemm')
-    # input_to_fuse = ['input_layer.0',
-    #                  'input_layer.1',
-    #                  'input_layer.2']
-    # body_to_fuse = ['body.conv',
-    #                 'body.batchnorm',
-    #                 'body.relu']
-    # output_to_fuse = ['output_layer.0',
-    #                   'output_layer.3',
-    #                   'output_layer.4']
-    # model_fused = torch.quantization.fuse_modules(
-    #     model,
-    #     [input_to_fuse, body_to_fuse, output_to_fuse]
-    # )
-    model_prepared = torch.quantization.prepare(model)
-    input_fp32 = torch.randn(5, 3, 112, 112)
-    model_prepared(input_fp32)
-    model_int8 = torch.quantization.convert(model_prepared)
-    return convert_onnx(model_int8, config)
+def quantize_onnx(onnx_model_path, config):
+    model_quantize_name = '{}.quantize.onnx'.format(
+        config.backbone_name.lower()
+    )
+    onnx_folder = opj(os.getcwd(), 'weight', config.backbone_name.lower())
+    model_quantize_path = opj(onnx_folder, model_quantize_name)
+    _ = quantize_dynamic(
+        onnx_model_path, model_quantize_path, weight_type=QuantType.QUInt8
+    )
+    return ort.InferenceSession(model_quantize_path)
 
 
 def test_time(*onnx_model, conf):
@@ -112,4 +102,5 @@ def test_time(*onnx_model, conf):
         )
         average_time = (t_end-t_start)/conf.sample
         logger.info('take average {}s for each sample'.format(average_time))
+        time.sleep(10)
     pass
