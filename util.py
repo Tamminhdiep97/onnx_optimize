@@ -62,10 +62,13 @@ def convert_onnx(model, config):
     return onnx_path
 
 
-def optimize_graph():
+def optimize_graph(config):
+    onnx_folder = opj(os.getcwd(), 'weight', config.backbone_name.lower())
+    model_name = '{}.optimize.onnx'.format(config.backbone_name.lower())
     sess_options = ort.SessionOptions()
     sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-    return sess_options
+    sess_options.optimized_model_filepath = opj(onnx_folder, model_name)
+    return sess_options, opj(onnx_folder, model_name)
 
 
 def quantize_onnx(onnx_model_path, config):
